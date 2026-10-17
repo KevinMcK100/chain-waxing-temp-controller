@@ -2,13 +2,17 @@
 
 An ESP32-based temperature controller for melting and maintaining chain wax at a precise temperature. Features an OLED display, real-time web dashboard with Chart.js, ESPHome smart plug control, and push notifications via ntfy.sh.
 
-## Why I Built This
+## Motivation & Background
 
-Waxing chains with a slow cooker takes about 45 minutes to reach the desired temperature. For years I'd set a timer and come back when it went off — but inevitably, I'd be in the middle of something when the alarm sounded. A few times I turned it off, got distracted, and came back hours later to find the pot smoking.
+Chain waxing with a standard slow cooker is a brilliant method for drivetrain maintenance, but it comes with a frustrating operational bottleneck: it takes roughly 45 minutes for the wax to reach its operating temperature.
 
-I generally only heat wax on a low setting for fear of forgetting it on high, but a high setting gets the wax up to temperature much faster. What I needed was something that would regulate the temperature automatically — turning the power on and off to hold a steady set point well below the smoking point — so I could safely heat on high without having to babysit it.
+Historically, this process relied on setting a manual timer, walking away, and returning to drop the chain in. However, this workflow introduces a major safety and convenience flaw—human error. If you get caught up in another task when the alarm sounds, it is all too easy to dismiss the notification and forget about the pot entirely, risking degraded wax, smoking pots, or worse. Out of an abundance of caution, I used to rely solely on low-heat settings to prevent runaway temperatures, sacrificing valuable time when a fast, high-heat ramp-up would be far more optimal.
 
-The controller notifies your phone when the wax reaches the target temperature, but even if you don't make it back for hours, it just keeps holding that temperature. Added bonuses: an OLED screen that sits with the pot, and a web dashboard (temperature graph + controls) accessible from any device on the network — usually a phone.
+## The Solution
+
+To eliminate the guesswork and remove the safety hazard, I built an automated, network-connected temperature regulation system.
+
+Instead of relying on passive timers, the controller acts as a precision thermostat. It safely leverages high heat to bring the wax up to temperature rapidly, then intelligently cycles power to the cooker (much like a kitchen oven hob) to maintain a rock-solid target temperature indefinitely. Even if you get distracted and walk away for hours, the wax remains safely locked at its target temperature—well below the smoking point.
 
 ## Hardware
 
@@ -71,68 +75,12 @@ pio run --target upload
 pio device monitor
 ```
 
-## Features
+## Key Features
 
-### State Machine (Heating → Coasting → Holding)
-
-The controller uses a simple, reliable state machine — no PID tuning required:
-
-```
-                 ┌──────────────┐
-                 │   HEATING    │──── temp ≥ (target - bulkCoastMargin)
-                 └──────────────┘              │
-                      │                        ▼
-                      │                 ┌──────────────┐
-                      │                 │   COASTING   │──── temp ≥ target
-                      │                 └──────────────┘       │
-                      │                        │               ▼
-                      │                        │        ┌──────────────┐
-                      │                        │        │   HOLDING    │
-                      │                        │        └──────────────┘
-                      │                        │               │
-                      │◄─── temp ≤ restart ────┴───────────────┘
-                      │      (dropped below hold band)
-                      ▼
-```
-
-- **Heating**: Heater ON, wax rising toward target
-- **Coasting**: Heater OFF, wax continues rising from thermal inertia
-- **Holding**: At target temperature, heater cycles on/off to maintain the band
-
-### OLED Display
-
-- Animated status indicator (`HEATING`, `COASTING`, `HOLDING`, `COOLING`)
-- Large live temperature reading
-- Progress bar showing position between start and target temperatures
-
-### Web Dashboard
-
-A built-in web server hosts a dark-themed dashboard with:
-
-- Live temperature, heater status, and mode
-- Real-time Chart.js line chart (up to ~66 minutes of history)
-- Coloured chart segments (blue = heating, green = holding, red = overshoot/cooling)
-- Adjustable settings: target temperature, coast margins, and hold triggers
-
-Access it at the ESP32's IP address (check serial monitor output).
-
-### Push Notifications
-
-Uses [ntfy.sh](https://ntfy.sh) for notifications on key events:
-
-- Wax approaching target (coasting started)
-- Target temperature reached
-- Over-temperature warning (+10°C above target)
-- Sensor fault detection
-- Reheating phase started
-
-### Smart Plug Control
-
-Controls an ESPHome-based smart plug over HTTP to turn the heater on/off. The plug is switched off during coasting, hold, and fault/safety conditions.
-
-### Persistent Settings
-
-Target temperature, coast margins, and hold trigger are saved to ESP32 NVS (non-volatile storage) and survive reboots. Settings can be changed live via the web dashboard.
+- **Intelligent Two-Stage Thermal Control:** Uses a bulk heat-up phase with thermal momentum "coasting" followed by a tight holding phase to prevent temperature overshoot.
+- **Instant Push Notifications (ntfy):** Sends real-time alerts to your phone when the wax reaches target temperature, enters coasting phases, or if any safety thresholds are triggered.
+- **On-Device OLED Display:** A local hardware display mounted directly on the wax pot, providing large typography, dynamic progress tracking, and live status animations.
+- **Network Web Dashboard:** A mobile-accessible local control panel featuring a real-time Chart.js telemetry graph, interactive configuration tooltips, and persistent flash memory settings.
 
 ## Project Structure
 
