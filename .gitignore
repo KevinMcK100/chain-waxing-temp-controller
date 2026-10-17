@@ -15,3 +15,5 @@ dependencies.lock
 # Sensitive configuration (WiFi credentials, API keys, internal IPs)
 config.h
 src/config.h
+# Local design notes (not for remote)
+docs/

@@ -63,6 +63,22 @@ uint8_t phaseHistory[HISTORY_SIZE];
 int historyIndex = 0;
 bool historyFull = false;
 
+// Ring-buffered log capture (served at /logs)
+#define LOG_BUF_SIZE 4096
+char logBuf[LOG_BUF_SIZE];
+int logHead = 0;
+bool logFull = false;
+
+void logMsg(const char* msg) {
+  Serial.print(msg);
+  int len = strlen(msg);
+  for (int i = 0; i < len; i++) {
+    logBuf[logHead] = msg[i];
+    logHead = (logHead + 1) % LOG_BUF_SIZE;
+    if (logHead == 0) logFull = true;
+  }
+}
+
 // Function Prototypes for Main Sketch
 void setSmartPlug(bool turnOn);
 void sendNtfyNotification(String message);
@@ -80,11 +96,13 @@ void sendNtfyNotification(String message) {
 
     int httpResponseCode = http.POST(message);
     if (httpResponseCode > 0) {
-      Serial.print("ntfy sent successfully. Response code: ");
-      Serial.println(httpResponseCode);
+      char buf[64];
+      snprintf(buf, sizeof(buf), "ntfy sent successfully. Response code: %d\n", httpResponseCode);
+      logMsg(buf);
     } else {
-      Serial.print("Error sending ntfy: ");
-      Serial.println(httpResponseCode);
+      char buf[64];
+      snprintf(buf, sizeof(buf), "Error sending ntfy: %d\n", httpResponseCode);
+      logMsg(buf);
     }
     http.end();
   }
@@ -106,12 +124,11 @@ void setSmartPlug(bool turnOn) {
     int httpResponseCode = http.POST("");
 
     if (httpResponseCode > 0) {
-      Serial.print("ESPHome smart plug command sent (");
-      Serial.print(action);
-      Serial.print("). Code: ");
-      Serial.println(httpResponseCode);
+      char buf[128];
+      snprintf(buf, sizeof(buf), "ESPHome smart plug command sent (%s). Code: %d\n", action.c_str(), httpResponseCode);
+      logMsg(buf);
     } else {
-      Serial.println("ESPHome smart plug HTTP connection failed.");
+      logMsg("ESPHome smart plug HTTP connection failed.\n");
     }
     http.end();
   }
@@ -212,10 +229,10 @@ void setup() {
   if (holdCoastMargin >= holdReheatTrigger) {
     holdCoastMargin = holdReheatTrigger / 2.0f;
   }
-  Serial.println("Preferences loaded.");
+  logMsg("Preferences loaded.\n");
 
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println(F("SSD1306 allocation failed"));
+    logMsg("SSD1306 allocation failed\n");
     for(;;);
   }
 
@@ -229,19 +246,21 @@ void setup() {
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
-    Serial.print(".");
+    logMsg(".");
   }
 
-  Serial.println("\nWiFi connected.");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
+  logMsg("\nWiFi connected.\n");
+  char ipBuf[32];
+  snprintf(ipBuf, sizeof(ipBuf), "IP address: %s\n", WiFi.localIP().toString().c_str());
+  logMsg(ipBuf);
 
   // Web Server Routes
   server.on("/", handleRoot);
   server.on("/data", handleData);
   server.on("/update", handleUpdate);
+  server.on("/logs", handleLogs);
   server.begin();
-  Serial.println("Web server started.");
+  logMsg("Web server started.\n");
 
   display.clearDisplay();
   display.setCursor(0, 0);
@@ -268,7 +287,7 @@ void loop() {
     tempC = startTemp;
 
     if (tempC < (targetTemp - bulkCoastMargin)) {
-      Serial.println("Wax below target on boot. Turning heater ON.");
+      logMsg("Wax below target on boot. Turning heater ON.\n");
       isCoasting = false;
       isHolding = false;
       setSmartPlug(true);
@@ -375,13 +394,13 @@ void loop() {
     lastDiagMillis = currentMillis;
 
     if (WiFi.status() != WL_CONNECTED) {
-      Serial.println("WiFi disconnected. Attempting reconnect...");
+      logMsg("WiFi disconnected. Attempting reconnect...\n");
       WiFi.reconnect();
     }
 
-    Serial.print("Free heap: ");
-    Serial.print(ESP.getFreeHeap());
-    Serial.print("  Max alloc block: ");
-    Serial.println(ESP.getMaxAllocHeap());
+    char diagBuf[64];
+    snprintf(diagBuf, sizeof(diagBuf), "Free heap: %u  Max alloc block: %u\n",
+      ESP.getFreeHeap(), ESP.getMaxAllocHeap());
+    logMsg(diagBuf);
   }
 }

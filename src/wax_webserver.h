@@ -18,6 +18,12 @@ extern Preferences preferences;
 
 #define HISTORY_SIZE 2000
 #define CHART_POINTS 300
+
+// --- Ring-buffered log capture (served at /logs) ---
+#define LOG_BUF_SIZE 4096
+extern char logBuf[LOG_BUF_SIZE];
+extern int logHead;
+extern bool logFull;
 extern float tempHistory[];
 extern uint8_t phaseHistory[];
 extern int historyIndex;
@@ -84,6 +90,23 @@ inline void handleUpdate() {
 
   server.sendHeader("Location", "/", true);
   server.send(303);
+}
+
+inline void handleLogs() {
+  static char outBuf[LOG_BUF_SIZE + 50];
+  int pos = 0;
+
+  if (!logFull) {
+    memcpy(outBuf, logBuf, logHead);
+    outBuf[logHead] = '\0';
+  } else {
+    int len1 = LOG_BUF_SIZE - logHead;
+    memcpy(outBuf, logBuf + logHead, len1);
+    memcpy(outBuf + len1, logBuf, logHead);
+    outBuf[len1 + logHead] = '\0';
+  }
+
+  server.send(200, "text/plain", outBuf);
 }
 
 inline void handleRoot() {
