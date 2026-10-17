@@ -106,6 +106,10 @@ inline void handleLogs() {
     outBuf[len1 + logHead] = '\0';
   }
 
+  // ?download → trigger file save instead of in-browser view
+  if (server.hasArg("download")) {
+    server.sendHeader("Content-Disposition", "attachment; filename=logs.txt");
+  }
   server.send(200, "text/plain", outBuf);
 }
 
