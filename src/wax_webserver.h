@@ -296,6 +296,10 @@ inline void handleRoot() {
   html += "setInterval(fetchData, 5000);";
   html += "fetchData();";
   html += "</script>";
+  html += "<div style='text-align: center; margin-top: 15px; margin-bottom: 10px;'>";
+  html += "<a href='/logs' style='background: #444; color: #e0e0e0; text-decoration: none; padding: 10px 24px; border-radius: 4px; margin-right: 10px; display: inline-block; font-size: 14px;'>View Logs</a>";
+  html += "<a href='/logs?download' style='background: #444; color: #e0e0e0; text-decoration: none; padding: 10px 24px; border-radius: 4px; display: inline-block; font-size: 14px;'>Download Logs</a>";
+  html += "</div>";
   html += "</body></html>";
 
   server.send(200, "text/html", html);
