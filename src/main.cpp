@@ -300,11 +300,18 @@ void loop() {
     tempC = sensors.getTempCByIndex(0);
 
     // 1. SENSOR FAULT CHECK
-    if (tempC == -127.0 || tempC == 85.0 || tempC < -50 || tempC > 150) {
+    // 85.0 is deliberately excluded — it is the DS18B20 power-on default AND a
+    // legitimate temperature the wax passes through on every heat-up.
+    if (tempC == -127.0 || tempC < -50 || tempC > 150) {
       if (!sensorFaultNotified) {
         sendNtfyNotification("ERROR: Temperature sensor disconnected or invalid reading detected!");
         sensorFaultNotified = true;
       }
+      // Reset state-machine latches so the controller can resume cleanly
+      // when the sensor recovers on the next cycle.
+      coastNotified = false;
+      targetNotified = false;
+      isCoasting = false;
       setSmartPlug(false);
       return;  // Skip logging bad samples entirely
     } else {
@@ -360,5 +367,21 @@ void loop() {
     phaseHistory[historyIndex] = computePhase();
     historyIndex = (historyIndex + 1) % HISTORY_SIZE;
     if (historyIndex == 0) historyFull = true;
+  }
+
+  // --- WiFi health check & heap diagnostics (every 30 s) ---
+  static unsigned long lastDiagMillis = 0;
+  if (currentMillis - lastDiagMillis >= 30000) {
+    lastDiagMillis = currentMillis;
+
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("WiFi disconnected. Attempting reconnect...");
+      WiFi.reconnect();
+    }
+
+    Serial.print("Free heap: ");
+    Serial.print(ESP.getFreeHeap());
+    Serial.print("  Max alloc block: ");
+    Serial.println(ESP.getMaxAllocHeap());
   }
 }

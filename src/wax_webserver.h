@@ -17,41 +17,51 @@ extern bool isHolding;
 extern Preferences preferences;
 
 #define HISTORY_SIZE 2000
+#define CHART_POINTS 300
 extern float tempHistory[];
 extern uint8_t phaseHistory[];
 extern int historyIndex;
 extern bool historyFull;
 
 inline void handleData() {
-  String json = "{";
-  json += "\"temp\":" + String(tempC, 1) + ",";
-  json += "\"target\":" + String(targetTemp, 1) + ",";
-  json += "\"heater\":" + String(heaterState ? "true" : "false") + ",";
-  json += "\"coasting\":" + String(isCoasting ? "true" : "false") + ",";
-  json += "\"holding\":" + String(isHolding ? "true" : "false") + ",";
+  // Static buffer — zero heap allocation per request.
+  // Sized for ~300 points: history (~1500 chars) + phases (~600) + header (~120).
+  static char buf[4096];
 
-  int startIdx = historyFull ? historyIndex : 0;
-  int count = historyFull ? HISTORY_SIZE : historyIndex;
-
-  json += "\"history\":[";
-  for (int i = 0; i < count; i++) {
-    int idx = (startIdx + i) % HISTORY_SIZE;
-    json += String(tempHistory[idx], 1);
-    if (i < count - 1) json += ",";
+  int available = historyFull ? HISTORY_SIZE : historyIndex;
+  int count = min(available, CHART_POINTS);
+  int startIdx;
+  if (historyFull) {
+    startIdx = (historyIndex + HISTORY_SIZE - count) % HISTORY_SIZE;
+  } else {
+    startIdx = historyIndex - count;
   }
-  json += "]";
 
-  json += ",\"phases\":[";
-  for (int i = 0; i < count; i++) {
+  int pos = 0;
+  pos += snprintf(buf + pos, sizeof(buf) - pos,
+    "{\"temp\":%.1f,\"target\":%.1f,\"heater\":%s,\"coasting\":%s,\"holding\":%s,\"history\":[",
+    tempC, targetTemp,
+    heaterState ? "true" : "false",
+    isCoasting ? "true" : "false",
+    isHolding ? "true" : "false");
+
+  for (int i = 0; i < count && pos < (int)sizeof(buf) - 10; i++) {
     int idx = (startIdx + i) % HISTORY_SIZE;
-    json += String(phaseHistory[idx]);
-    if (i < count - 1) json += ",";
+    pos += snprintf(buf + pos, sizeof(buf) - pos, "%.1f%s",
+      tempHistory[idx], (i < count - 1) ? "," : "");
   }
-  json += "]";
 
-  json += "}";
+  pos += snprintf(buf + pos, sizeof(buf) - pos, "],\"phases\":[");
 
-  server.send(200, "application/json", json);
+  for (int i = 0; i < count && pos < (int)sizeof(buf) - 10; i++) {
+    int idx = (startIdx + i) % HISTORY_SIZE;
+    pos += snprintf(buf + pos, sizeof(buf) - pos, "%d%s",
+      (int)phaseHistory[idx], (i < count - 1) ? "," : "");
+  }
+
+  pos += snprintf(buf + pos, sizeof(buf) - pos, "]}");
+
+  server.send(200, "application/json", buf);
 }
 
 inline void handleUpdate() {
@@ -77,7 +87,9 @@ inline void handleUpdate() {
 }
 
 inline void handleRoot() {
-  String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'>";
+  String html;
+  html.reserve(12288);
+  html = "<!DOCTYPE html><html><head><meta charset='UTF-8'>";
   html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
   html += "<title>Chain Waxer Dashboard</title>";
   html += "<script src='https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'></script>";
@@ -254,7 +266,7 @@ inline void handleRoot() {
   html += "    chart.update('none');";
   html += "  } catch (e) { console.error(e); }";
   html += "}";
-  html += "setInterval(fetchData, 3000);";
+  html += "setInterval(fetchData, 5000);";
   html += "fetchData();";
   html += "</script>";
   html += "</body></html>";
