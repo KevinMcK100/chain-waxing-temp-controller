@@ -14,6 +14,13 @@ To eliminate the guesswork and remove the safety hazard, I built an automated, n
 
 Instead of relying on passive timers, the controller acts as a precision thermostat. It safely leverages high heat to bring the wax up to temperature rapidly, then intelligently cycles power to the cooker (much like a kitchen oven hob) to maintain a rock-solid target temperature indefinitely. Even if you get distracted and walk away for hours, the wax remains safely locked at its target temperature—well below the smoking point.
 
+## Key Features
+
+- **Intelligent Two-Stage Thermal Control:** Uses a bulk heat-up phase with thermal momentum "coasting" followed by a tight holding phase to prevent temperature overshoot.
+- **Instant Push Notifications (ntfy):** Sends real-time alerts to your phone when the wax reaches target temperature, enters coasting phases, or if any safety thresholds are triggered.
+- **On-Device OLED Display:** A local hardware display mounted directly on the wax pot, providing large typography, dynamic progress tracking, and live status animations.
+- **Network Web Dashboard:** A mobile-accessible local control panel featuring a real-time Chart.js telemetry graph, interactive configuration tooltips, and persistent flash memory settings.
+
 ## Hardware
 
 | Component | Details |
@@ -74,13 +81,6 @@ pio run --target upload
 # Monitor serial output
 pio device monitor
 ```
-
-## Key Features
-
-- **Intelligent Two-Stage Thermal Control:** Uses a bulk heat-up phase with thermal momentum "coasting" followed by a tight holding phase to prevent temperature overshoot.
-- **Instant Push Notifications (ntfy):** Sends real-time alerts to your phone when the wax reaches target temperature, enters coasting phases, or if any safety thresholds are triggered.
-- **On-Device OLED Display:** A local hardware display mounted directly on the wax pot, providing large typography, dynamic progress tracking, and live status animations.
-- **Network Web Dashboard:** A mobile-accessible local control panel featuring a real-time Chart.js telemetry graph, interactive configuration tooltips, and persistent flash memory settings.
 
 ## Project Structure
 
