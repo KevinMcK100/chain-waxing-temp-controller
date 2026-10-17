@@ -2,6 +2,14 @@
 
 An ESP32-based temperature controller for melting and maintaining chain wax at a precise temperature. Features an OLED display, real-time web dashboard with Chart.js, ESPHome smart plug control, and push notifications via ntfy.sh.
 
+## Why I Built This
+
+Waxing chains with a slow cooker takes about 45 minutes to reach the desired temperature. For years I'd set a timer and come back when it went off — but inevitably, I'd be in the middle of something when the alarm sounded. A few times I turned it off, got distracted, and came back hours later to find the pot smoking.
+
+I generally only heat wax on a low setting for fear of forgetting it on high, but a high setting gets the wax up to temperature much faster. What I needed was something that would regulate the temperature automatically — turning the power on and off to hold a steady set point well below the smoking point — so I could safely heat on high without having to babysit it.
+
+The controller notifies your phone when the wax reaches the target temperature, but even if you don't make it back for hours, it just keeps holding that temperature. Added bonuses: an OLED screen that sits with the pot, and a web dashboard (temperature graph + controls) accessible from any device on the network — usually a phone.
+
 ## Hardware
 
 | Component | Details |
