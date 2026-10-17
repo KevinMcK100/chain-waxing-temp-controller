@@ -1,0 +1,22 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// --- Wi-Fi Credentials ---
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
+
+// --- Smart Plug Config ---
+const char* smartPlugIP = "192.168.xx.xx";
+const char* smartPlugEntity = "YOUR_PLUG_ENTITY_NAME";
+
+// --- Ntfy Config ---
+const char* ntfyServer = "https://ntfy.sh";
+const char* ntfyTopic = "YOUR_NTFY_TOPIC";
+
+// --- Pin & Hardware Definitions ---
+#define ONE_WIRE_BUS 4
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1
+
+#endif
